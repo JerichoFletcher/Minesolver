@@ -26,9 +26,52 @@ namespace Minesolver.CLI {
                                 case 1:
                                     valid = true;
 
-                                    // Temp
-                                    Board board = new Board(10, 10, 10);
+                                    // Read input
+                                    bool boardValid = false;
+                                    Board? board = null;
+                                    while(!boardValid) {
+                                        ConsoleHelper.Write("Board size: ", ConsoleColor.DarkGray);
+                                        string? inputBoardSize = Console.ReadLine();
+                                        if(inputBoardSize == null) {
+                                            ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                                            return false;
+                                        }
+
+                                        string[] inputSplitSize = inputBoardSize.Split(' ');
+                                        if(inputSplitSize.Length != 2) {
+                                            ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
+                                            continue;
+                                        } else if(int.TryParse(inputSplitSize[0], out int rowCount) && int.TryParse(inputSplitSize[1], out int colCount)) {
+                                            ConsoleHelper.Write("Board mine count: ", ConsoleColor.DarkGray);
+                                            string? inputMineCount = Console.ReadLine();
+                                            if(inputMineCount == null) {
+                                                ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                                                return false;
+                                            }
+
+                                            if(int.TryParse(inputMineCount, out int mineCount)) {
+                                                try {
+                                                    board = new Board(mineCount, rowCount, colCount);
+                                                    boardValid = true;
+                                                } catch(ArgumentOutOfRangeException e) {
+                                                    boardValid = false;
+                                                    ConsoleHelper.WriteLine($"Invalid board configuration: {e.Message}", ConsoleColor.Red);
+                                                }
+                                            } else {
+                                                ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                                                continue;
+                                            }
+                                        } else {
+                                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                                            continue;
+                                        }
+                                    }
+                                    if(board == null) throw new Exception("Null board");
+
                                     while(GameLoop(board)) ;
+                                    Console.Clear();
+                                    ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
+                                    board.PrintBoardToConsole();
 
                                     ConsoleHelper.WriteLine("Game finished!", ConsoleColor.Green);
                                     Console.ReadLine();
@@ -56,12 +99,21 @@ namespace Minesolver.CLI {
         private static bool GameLoop(Board board) {
             Console.Clear();
             ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
-
             board.PrintBoardToConsole();
+
             ConsoleHelper.Write("Pos: ", ConsoleColor.White);
             string? pos = Console.ReadLine();
             if(pos != null) {
-                
+                string[] args = pos.Trim().Split(' ');
+                if(args.Length != 2) {
+                    ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
+                    return true;
+                } else if(int.TryParse(args[0], out int row) && int.TryParse(args[1], out int col)) {
+                    if(board.Click(row - 1, col - 1) == -1) return false;
+                } else {
+                    ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                    return true;
+                }
             } else {
                 ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
                 return false;
