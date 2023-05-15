@@ -1,7 +1,9 @@
-﻿namespace Minesolver {
+﻿using Minesolver.CLI;
+
+namespace Minesolver {
     public static class Program {
         public static void Main(string[] args) {
-            Console.WriteLine("Hello, World!");
+            while(Menu.MenuLoop()) ;
         }
     }
 }
