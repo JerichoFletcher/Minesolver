@@ -1,4 +1,6 @@
-﻿namespace Minesolver.CLI {
+﻿using Minesolver.Game;
+
+namespace Minesolver.CLI {
     internal class Menu {
         public static bool MenuLoop() {
             Action<int, string> printOption = (int i, string name) => {
@@ -6,6 +8,7 @@
                 ConsoleHelper.WriteLine(name, ConsoleColor.White);
             };
 
+            Console.Clear();
             ConsoleHelper.WriteLine("MAIN MENU", ConsoleColor.DarkGray);
             printOption(1, "Play by yourself");
             printOption(0, "Exit");
@@ -24,7 +27,11 @@
                                     valid = true;
 
                                     // Temp
-                                    ConsoleHelper.WriteLine("Hello!", ConsoleColor.Cyan);
+                                    Board board = new Board(10, 10, 10);
+                                    while(GameLoop(board)) ;
+
+                                    ConsoleHelper.WriteLine("Game finished!", ConsoleColor.Green);
+                                    Console.ReadLine();
 
                                     break;
                                 case 0:
@@ -44,6 +51,23 @@
 
             Console.WriteLine();
             return true;
+        }
+
+        private static bool GameLoop(Board board) {
+            Console.Clear();
+            ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
+
+            board.PrintBoardToConsole();
+            ConsoleHelper.Write("Pos: ", ConsoleColor.White);
+            string? pos = Console.ReadLine();
+            if(pos != null) {
+                
+            } else {
+                ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                return false;
+            }
+
+            return !board.Finished;
         }
     }
 }
