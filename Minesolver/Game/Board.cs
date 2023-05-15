@@ -66,6 +66,7 @@ namespace Minesolver.Game {
                             }
                         }
                     }
+                    Console.Write(" ");
                 }
                 Console.WriteLine();
             }
@@ -76,8 +77,12 @@ namespace Minesolver.Game {
             if(cells[row, col].IsUncovered) return cells[row, col].Value ?? int.MinValue;
 
             if(!firstClicked) {
-                while(cells[row, col].Uncover() == -1) {
+                int tryCount = 0;
+                bool check = cells[row, col].Uncover() != 0;
+                while(check) {
                     BuildCells();
+                    int checkVal = cells[row, col].Uncover();
+                    check = (tryCount++ < RowCount * ColCount) ? (checkVal != 0) : (checkVal == -1);
                 }
                 firstClicked = true;
             }
@@ -164,7 +169,7 @@ namespace Minesolver.Game {
                         case 6:
                             return ConsoleColor.DarkCyan;
                         case 7:
-                            return ConsoleColor.Black;
+                            return ConsoleColor.Magenta;
                         case 8:
                             return ConsoleColor.Gray;
                         default:
