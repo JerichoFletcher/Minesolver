@@ -1,4 +1,5 @@
 ﻿using Minesolver.Game;
+using Minesolver.Solver;
 
 namespace Minesolver.CLI {
     internal class Menu {
@@ -11,6 +12,7 @@ namespace Minesolver.CLI {
             Console.Clear();
             ConsoleHelper.WriteLine("MAIN MENU", ConsoleColor.DarkGray);
             printOption(1, "Play by yourself");
+            printOption(2, "Use random solver");
             printOption(0, "Exit");
 
             bool valid = false;
@@ -21,12 +23,15 @@ namespace Minesolver.CLI {
                         if(int.TryParse(input, out int option)) {
                             switch(option) {
                                 default:
+                                    Board? board;
+
                                     ConsoleHelper.WriteLine($"Unknown option '{option}'! Try again.", ConsoleColor.Red);
                                     break;
                                 case 1:
+                                    // Manual solve
                                     valid = true;
 
-                                    Board? board = InputBoard();
+                                    board = InputBoard();
                                     if(board == null) return false;
 
                                     while(PlayerGameLoop(board)) ;
@@ -36,6 +41,17 @@ namespace Minesolver.CLI {
 
                                     ConsoleHelper.WriteLine("Game finished!", ConsoleColor.Green);
                                     Console.ReadLine();
+
+                                    break;
+                                case 2:
+                                    // Random solve
+                                    valid = true;
+
+                                    board = InputBoard();
+                                    if(board == null) return false;
+
+                                    RandomSolver randSolver = new RandomSolver(board);
+                                    randSolver.Solve();
 
                                     break;
                                 case 0:
