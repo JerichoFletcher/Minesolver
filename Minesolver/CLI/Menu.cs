@@ -26,49 +26,10 @@ namespace Minesolver.CLI {
                                 case 1:
                                     valid = true;
 
-                                    // Read input
-                                    bool boardValid = false;
-                                    Board? board = null;
-                                    while(!boardValid) {
-                                        ConsoleHelper.Write("Board size: ", ConsoleColor.DarkGray);
-                                        string? inputBoardSize = Console.ReadLine();
-                                        if(inputBoardSize == null) {
-                                            ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
-                                            return false;
-                                        }
+                                    Board? board = InputBoard();
+                                    if(board == null) return false;
 
-                                        string[] inputSplitSize = inputBoardSize.Split(' ');
-                                        if(inputSplitSize.Length != 2) {
-                                            ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
-                                            continue;
-                                        } else if(int.TryParse(inputSplitSize[0], out int rowCount) && int.TryParse(inputSplitSize[1], out int colCount)) {
-                                            ConsoleHelper.Write("Board mine count: ", ConsoleColor.DarkGray);
-                                            string? inputMineCount = Console.ReadLine();
-                                            if(inputMineCount == null) {
-                                                ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
-                                                return false;
-                                            }
-
-                                            if(int.TryParse(inputMineCount, out int mineCount)) {
-                                                try {
-                                                    board = new Board(mineCount, rowCount, colCount);
-                                                    boardValid = true;
-                                                } catch(ArgumentOutOfRangeException e) {
-                                                    boardValid = false;
-                                                    ConsoleHelper.WriteLine($"Invalid board configuration: {e.Message}", ConsoleColor.Red);
-                                                }
-                                            } else {
-                                                ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
-                                                continue;
-                                            }
-                                        } else {
-                                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
-                                            continue;
-                                        }
-                                    }
-                                    if(board == null) throw new Exception("Null board");
-
-                                    while(GameLoop(board)) ;
+                                    while(PlayerGameLoop(board)) ;
                                     Console.Clear();
                                     ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
                                     board.PrintBoardToConsole();
@@ -96,7 +57,7 @@ namespace Minesolver.CLI {
             return true;
         }
 
-        private static bool GameLoop(Board board) {
+        private static bool PlayerGameLoop(Board board) {
             Console.Clear();
             ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
             board.PrintBoardToConsole();
@@ -120,6 +81,51 @@ namespace Minesolver.CLI {
             }
 
             return !board.Finished;
+        }
+
+        private static Board? InputBoard() {
+            // Read input
+            bool boardValid = false;
+            Board? board = null;
+            while(!boardValid) {
+                ConsoleHelper.Write("Board size: ", ConsoleColor.DarkGray);
+                string? inputBoardSize = Console.ReadLine();
+                if(inputBoardSize == null) {
+                    ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                    return null;
+                }
+
+                string[] inputSplitSize = inputBoardSize.Split(' ');
+                if(inputSplitSize.Length != 2) {
+                    ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
+                    continue;
+                } else if(int.TryParse(inputSplitSize[0], out int rowCount) && int.TryParse(inputSplitSize[1], out int colCount)) {
+                    ConsoleHelper.Write("Board mine count: ", ConsoleColor.DarkGray);
+                    string? inputMineCount = Console.ReadLine();
+                    if(inputMineCount == null) {
+                        ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                        return null;
+                    }
+
+                    if(int.TryParse(inputMineCount, out int mineCount)) {
+                        try {
+                            board = new Board(mineCount, rowCount, colCount);
+                            boardValid = true;
+                        } catch(ArgumentOutOfRangeException e) {
+                            boardValid = false;
+                            ConsoleHelper.WriteLine($"Invalid board configuration: {e.Message}", ConsoleColor.Red);
+                        }
+                    } else {
+                        ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                        continue;
+                    }
+                } else {
+                    ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                    continue;
+                }
+            }
+            if(board == null) throw new Exception("Null board");
+            return board;
         }
     }
 }

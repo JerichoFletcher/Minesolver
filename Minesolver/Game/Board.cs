@@ -15,8 +15,10 @@ namespace Minesolver.Game {
         private bool firstClicked = false;
 
         public Board(int mineCount, int rowCount, int colCount) {
-            if(rowCount <= 0 || colCount <= 0) throw new ArgumentOutOfRangeException("Board size must be positive");
-            if(mineCount > rowCount * colCount) throw new ArgumentOutOfRangeException($"Mine count ({mineCount}) exceeds cell count ({rowCount * colCount})");
+            if(rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount), "Board row count must be positive");
+            if(colCount <= 0) throw new ArgumentOutOfRangeException(nameof(colCount), "Board column count must be positive");
+            if(mineCount < 0) throw new ArgumentOutOfRangeException(nameof(mineCount), "Mine count must be non-negative");
+            if(mineCount > rowCount * colCount) throw new ArgumentOutOfRangeException(nameof(mineCount), $"Mine count ({mineCount}) exceeds cell count ({rowCount * colCount})");
 
             RowCount = rowCount;
             ColCount = colCount;
