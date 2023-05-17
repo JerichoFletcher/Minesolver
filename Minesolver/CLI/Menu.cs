@@ -12,7 +12,8 @@ namespace Minesolver.CLI {
             Console.Clear();
             ConsoleHelper.WriteLine("MAIN MENU", ConsoleColor.DarkGray);
             printOption(1, "Play by yourself");
-            printOption(2, "Use random solver");
+            printOption(2, "Single random solver");
+            printOption(3, "Mass random solver");
             printOption(0, "Exit");
 
             bool valid = false;
@@ -24,6 +25,7 @@ namespace Minesolver.CLI {
                             switch(option) {
                                 default:
                                     Board? board;
+                                    RandomSolver randSolver;
 
                                     ConsoleHelper.WriteLine($"Unknown option '{option}'! Try again.", ConsoleColor.Red);
                                     break;
@@ -39,19 +41,57 @@ namespace Minesolver.CLI {
                                     ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
                                     board.PrintBoardToConsole();
 
-                                    ConsoleHelper.WriteLine("Game finished!", ConsoleColor.Green);
+                                    switch(board.State) {
+                                        default:
+                                            ConsoleHelper.WriteLine("Game... uh... finished??? What??????", ConsoleColor.Yellow);
+                                            break;
+                                        case BoardState.Win:
+                                            ConsoleHelper.WriteLine("You win!", ConsoleColor.Green);
+                                            break;
+                                        case BoardState.Lose:
+                                            ConsoleHelper.WriteLine("You lose!", ConsoleColor.Red);
+                                            break;
+                                    }
                                     Console.ReadLine();
 
                                     break;
                                 case 2:
-                                    // Random solve
+                                    // Single random solve
                                     valid = true;
 
                                     board = InputBoard();
                                     if(board == null) return false;
 
-                                    RandomSolver randSolver = new RandomSolver(board);
+                                    randSolver = new RandomSolver(board);
                                     randSolver.Solve();
+
+                                    break;
+                                case 3:
+                                    // Mass random solve
+                                    valid = true;
+
+                                    board = InputBoard();
+                                    if(board == null) return false;
+
+                                    int attemptCount;
+                                    while(true) {
+                                        ConsoleHelper.Write("Attempt count: ", ConsoleColor.DarkGray);
+                                        string? strAttemptCount = Console.ReadLine();
+                                        if(strAttemptCount == null) {
+                                            ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                                            return true;
+                                        }
+
+                                        if(int.TryParse(strAttemptCount, out attemptCount)) {
+                                            break;
+                                        } else {
+                                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                                            continue;
+                                        }
+                                    }
+
+                                    randSolver = new RandomSolver(board);
+                                    randSolver.SolveImmediate(attemptCount);
 
                                     break;
                                 case 0:
@@ -86,7 +126,7 @@ namespace Minesolver.CLI {
                     ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
                     return true;
                 } else if(int.TryParse(args[0], out int row) && int.TryParse(args[1], out int col)) {
-                    if(board.Click(row - 1, col - 1) == -1) return false;
+                    if(board.Click(row, col) == -1) return false;
                 } else {
                     ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
                     return true;

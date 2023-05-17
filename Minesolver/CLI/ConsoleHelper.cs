@@ -5,16 +5,30 @@
             return Console.ReadLine();
         }
 
-        public static void WriteLine(string message, ConsoleColor color) {
+        public static void WriteLine(string message, ConsoleColor foreColor, ConsoleColor backColor) {
+            ConsoleColor temp = Console.BackgroundColor;
+            Console.BackgroundColor = backColor;
+            WriteLine(message, foreColor);
+            Console.BackgroundColor = temp;
+        }
+
+        public static void WriteLine(string message, ConsoleColor foreColor) {
             ConsoleColor temp = Console.ForegroundColor;
-            Console.ForegroundColor = color;
+            Console.ForegroundColor = foreColor;
             Console.WriteLine(message);
             Console.ForegroundColor = temp;
         }
 
-        public static void Write(string message, ConsoleColor color) {
+        public static void Write(string message, ConsoleColor foreColor, ConsoleColor backColor) {
+            ConsoleColor temp = Console.BackgroundColor;
+            Console.BackgroundColor = backColor;
+            Write(message, foreColor);
+            Console.BackgroundColor = temp;
+        }
+
+        public static void Write(string message, ConsoleColor foreColor) {
             ConsoleColor temp = Console.ForegroundColor;
-            Console.ForegroundColor = color;
+            Console.ForegroundColor = foreColor;
             Console.Write(message);
             Console.ForegroundColor = temp;
         }
