@@ -2,13 +2,15 @@
 using Minesolver.Game;
 
 namespace Minesolver.Solver {
-    internal class RandomSolver {
-        public Board Board { get; private set; }
+    internal class GreedyProbabilitySolver {
+        public Board Board { get; }
 
         private readonly Random rand = new Random();
+        private readonly float[,] probabilityBoard;
 
-        public RandomSolver(Board board) {
+        public GreedyProbabilitySolver(Board board) {
             Board = board;
+            probabilityBoard = new float[board.RowCount, board.ColCount];
         }
 
         public void Solve() {
@@ -29,19 +31,19 @@ namespace Minesolver.Solver {
             }
 
             Console.Clear();
-            ConsoleHelper.WriteLine("SINGLE RANDOM SOLVER", ConsoleColor.DarkGray);
+            ConsoleHelper.WriteLine("SINGLE GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
             Board.PrintBoardToConsole();
 
             ConsoleHelper.WriteLine($"Will click once every {interval} seconds", ConsoleColor.Cyan);
             ConsoleHelper.Write("Press ENTER to start...", ConsoleColor.Green);
             Console.ReadLine();
-
+            
             while(!Board.Finished) {
                 (int row, int col) = (rand.Next(1, Board.RowCount + 1), rand.Next(1, Board.ColCount + 1));
                 Board.Click(row, col);
 
                 Console.Clear();
-                ConsoleHelper.WriteLine("SINGLE RANDOM SOLVER", ConsoleColor.DarkGray);
+                ConsoleHelper.WriteLine("SINGLE GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
                 Board.PrintBoardToConsole();
 
                 ConsoleHelper.WriteLine($"Clicked position ({row}, {col})", ConsoleColor.Cyan);
@@ -65,7 +67,7 @@ namespace Minesolver.Solver {
 
         public void SolveImmediate(int attemptCount) {
             Console.Clear();
-            ConsoleHelper.WriteLine("MASS RANDOM SOLVER", ConsoleColor.DarkGray);
+            ConsoleHelper.WriteLine("MASS GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
             ConsoleHelper.Write("Solving board ", ConsoleColor.DarkGray);
             ConsoleHelper.Write($"{Board.RowCount}x{Board.ColCount}:{Board.MineCount}", ConsoleColor.Cyan);
             ConsoleHelper.Write(" in ", ConsoleColor.DarkGray);
@@ -102,6 +104,32 @@ namespace Minesolver.Solver {
 
             ConsoleHelper.Write("Press ENTER to continue...", ConsoleColor.Green);
             Console.ReadLine();
+        }
+
+        private void ComputeProbabilities() {
+            // Fill probability array with the initial value 0
+            for(int row = 0; row < Board.RowCount; row++) {
+                for(int col = 0; col < Board.ColCount; col++) {
+                    //int numRevealedNeighbors = 0;
+
+                    //// Peek neighboring squares
+                    //for(int dRow = -1; dRow <= 1; dRow++) {
+                    //    for(int dCol = -1; dCol <= 1; dCol++) {
+                    //        if(dRow == 0 && dCol == 0) continue;
+                    //        (int neighborRow, int neighborCol) = (row + dRow, col + dCol);
+                    //        if(!Board.WithinBounds(neighborRow, neighborCol)) continue;
+
+                    //        // Count the number of revealed neighbors
+
+                    //    }
+                    //}
+
+                    // Initial probability is equal to the density of remaining mines
+                    probabilityBoard[row, col] = Board.Peek(row, col) == null ? (float)Board.RemainingMineCount / Board.RemainingCoveredCells : 0f;
+                }
+            }
+
+            // Iterate through the array
         }
     }
 }

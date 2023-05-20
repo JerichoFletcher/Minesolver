@@ -12,6 +12,7 @@ namespace Minesolver.Game {
         public bool Finished => State == BoardState.Win || State == BoardState.Lose;
 
         private readonly Cell[,] cells;
+        private readonly HashSet<(int, int)> flags = new HashSet<(int, int)>();
         private bool firstClicked;
 
         public Board(int mineCount, int rowCount, int colCount) {
@@ -29,13 +30,32 @@ namespace Minesolver.Game {
         }
 
         public void Reset() {
+            flags.Clear();
             firstClicked = false;
             State = BoardState.NotStarted;
             BuildCells();
         }
 
-        public bool WithinBounds(int row, int col) {
-            return row >= 0 && col >= 0 && row < RowCount && col < ColCount;
+        public void EachNeighbor(int peekRow, int peekCol, Action<int, int> action) {
+            for(int dRow = -1; dRow <= 1; dRow++) {
+                for(int dCol = -1; dCol <= 1; dCol++) {
+                    if(dRow == 0 && dCol == 0) continue;
+
+                    (int row, int col) = (peekRow + dRow, peekCol + dCol);
+                    if(!WithinBounds(row, col)) continue;
+
+                    action(row, col);
+                }
+            }
+        }
+
+        public bool WithinBounds(int peekRow, int peekCol) {
+            return peekRow >= 1 && peekCol >= 1 && peekRow <= RowCount && peekCol <= ColCount;
+        }
+
+        public bool IsAdjacent(int row1, int col1, int row2, int col2) {
+            (int dRow, int dCol) = (Math.Abs(row1 - row2), Math.Abs(col1 - col2));
+            return Math.Abs(row1 - row2) <= 1 && Math.Abs(col1 - col2) <= 1;
         }
 
         public void PrintBoardToConsole() {
@@ -55,7 +75,9 @@ namespace Minesolver.Game {
                             ConsoleHelper.Write(((row + 1) % 10).ToString(), ConsoleColor.DarkGray);
                         } else {
                             Cell cell = cells[row, col];
-                            if(cell.IsUncovered) {
+                            if(flags.Contains((row, col))) {
+                                ConsoleHelper.Write("F", ConsoleColor.DarkRed, ConsoleColor.DarkGray);
+                            } else if(cell.IsUncovered) {
                                 int cellValue = cell.Value ?? int.MinValue;
                                 ConsoleColor cellColor = cell.Color ?? ConsoleColor.DarkGray;
                                 if(cellValue == -1) {
@@ -74,23 +96,34 @@ namespace Minesolver.Game {
             }
         }
 
-        public int Click(int clickRow, int clickCol) {
-            (int row, int col) = (clickRow - 1, clickCol - 1);
-            if(!WithinBounds(row, col)) throw new ArgumentOutOfRangeException($"Position {clickRow}:{clickCol} -> {row}:{col} is out of bounds for mapsize {RowCount}x{ColCount}");
-            if(cells[row, col].IsUncovered) return Peek(clickRow, clickCol) ?? int.MinValue;
+        public void Click(int clickRow, int clickCol) {
+            if(!WithinBounds(clickRow, clickCol)) throw new ArgumentOutOfRangeException($"Position {clickRow}:{clickCol} is out of bounds for mapsize {RowCount}x{ColCount}");
+            if(GetFlag(clickRow, clickCol)) throw new InvalidOperationException($"Cannot click {clickRow}:{clickCol} as it is flagged");
+            if(Finished) throw new InvalidOperationException("The board is already finished");
 
-            if(Finished) {
-                throw new InvalidOperationException("The board is already finished");
+            (int row, int col) = (clickRow - 1, clickCol - 1);
+            if(cells[row, col].IsUncovered) {
+                // Chording: click on neighboring covered squares
+                int peekValue = Peek(clickRow, clickCol) ?? int.MinValue;
+                int neighborFlagCount = 0;
+                EachNeighbor(clickRow, clickCol, (r, c) => {
+                    if(GetFlag(r, c)) neighborFlagCount++;
+                });
+                if(peekValue == neighborFlagCount) {
+                    EachNeighbor(clickRow, clickCol, (r, c) => {
+                        if(!GetFlag(r, c) && Peek(r, c) == null) Click(r, c);
+                    });
+                }
             }
             
+            // Uncover a single square
             State = BoardState.Started;
             if(!firstClicked) {
-                int tryCount = 0;
                 bool check = cells[row, col].Uncover() != 0;
                 while(check) {
                     BuildCells();
                     int checkVal = cells[row, col].Uncover();
-                    check = (tryCount++ < RowCount * ColCount) ? (checkVal != 0) : (checkVal == -1);
+                    check = checkVal == -1;
                 }
                 firstClicked = true;
             }
@@ -99,27 +132,41 @@ namespace Minesolver.Game {
             RemainingCoveredCells--;
 
             if(value == 0) {
-                for(int dx = -1; dx <= 1; dx++) {
-                    for(int dy = -1; dy <= 1; dy++) {
-                        if(dx == 0 && dy == 0) continue;
-                        int neighborRow = row + dx;
-                        int neighborCol = col + dy;
-                        if(!WithinBounds(neighborRow, neighborCol)) continue;
+                EachNeighbor(clickRow, clickCol, (r, c) => {
+                    if(Peek(r, c) == null) Click(r, c);
+                });
+                //for(int dx = -1; dx <= 1; dx++) {
+                //    for(int dy = -1; dy <= 1; dy++) {
+                //        if(dx == 0 && dy == 0) continue;
+                //        int neighborRow = row + dx;
+                //        int neighborCol = col + dy;
+                //        if(!WithinBounds(neighborRow, neighborCol)) continue;
 
-                        Click(neighborRow + 1, neighborCol + 1);
-                    }
-                }
+                //        Click(neighborRow + 1, neighborCol + 1);
+                //    }
+                //}
             } else if(value == -1) State = BoardState.Lose;
 
             if(!Finished && RemainingCoveredCells == MineCount) State = BoardState.Win;
-
-            return value;
         }
 
         public int? Peek(int peekRow, int peekCol) {
-            (int row, int col) = (peekRow - 1,  peekCol - 1);
-            if(!WithinBounds(row, col)) throw new ArgumentOutOfRangeException($"Position {row}:{col} is out of bounds for mapsize {RowCount}x{ColCount}");
+            if(!WithinBounds(peekRow, peekCol)) throw new ArgumentOutOfRangeException($"Position {peekRow}:{peekCol} is out of bounds for mapsize {RowCount}x{ColCount}");
+            (int row, int col) = (peekRow - 1, peekCol - 1);
             return cells[row, col].Value;
+        }
+
+        public void SetFlag(int peekRow, int peekCol, bool flag) {
+            if(!WithinBounds(peekRow, peekCol)) throw new ArgumentOutOfRangeException($"Position {peekRow}:{peekCol} is out of bounds for mapsize {RowCount}x{ColCount}");
+            (int row, int col) = (peekRow - 1, peekCol - 1);
+            bool _ = flag ? flags.Add((row, col)) : flags.Remove((row, col));
+            RemainingMineCount = Math.Max(MineCount - flags.Count, 0);
+        }
+
+        public bool GetFlag(int peekRow, int peekCol) {
+            if(!WithinBounds(peekRow, peekCol)) throw new ArgumentOutOfRangeException($"Position {peekRow}:{peekCol} is out of bounds for mapsize {RowCount}x{ColCount}");
+            (int row, int col) = (peekRow - 1, peekCol - 1);
+            return flags.Contains((row, col));
         }
 
         private void BuildCells() {
@@ -134,18 +181,21 @@ namespace Minesolver.Game {
                 if(numbers[row, col] != -1) {
                     numbers[row, col] = -1;
                     RemainingMineCount++;
-                    for(int dx = -1; dx <= 1; dx++) {
-                        for(int dy = -1; dy <= 1; dy++) {
-                            if(dx == 0 && dy == 0) continue;
-                            int neighborRow = row + dx;
-                            int neighborCol = col + dy;
-                            if(!WithinBounds(neighborRow, neighborCol)) continue;
+                    EachNeighbor(row + 1, col + 1, (r, c) => {
+                        if(numbers[r - 1, c - 1] != -1) numbers[r - 1, c - 1]++;
+                    });
+                    //for(int dx = -1; dx <= 1; dx++) {
+                    //    for(int dy = -1; dy <= 1; dy++) {
+                    //        if(dx == 0 && dy == 0) continue;
+                    //        int neighborRow = row + dx;
+                    //        int neighborCol = col + dy;
+                    //        if(!WithinBounds(neighborRow, neighborCol)) continue;
 
-                            if(numbers[neighborRow, neighborCol] != -1) {
-                                numbers[neighborRow, neighborCol]++;
-                            }
-                        }
-                    }
+                    //        if(numbers[neighborRow, neighborCol] != -1) {
+                    //            numbers[neighborRow, neighborCol]++;
+                    //        }
+                    //    }
+                    //}
                 }
             }
 
@@ -162,34 +212,23 @@ namespace Minesolver.Game {
             public int? Value => IsUncovered ? value : null;
             public ConsoleColor? Color { get {
                     if(!IsUncovered) return null;
-                    switch(value) {
-                        case -1:
-                            return ConsoleColor.Black;
-                        case 0:
-                            return ConsoleColor.White;
-                        case 1:
-                            return ConsoleColor.Blue;
-                        case 2:
-                            return ConsoleColor.Green;
-                        case 3:
-                            return ConsoleColor.Red;
-                        case 4:
-                            return ConsoleColor.DarkBlue;
-                        case 5:
-                            return ConsoleColor.DarkRed;
-                        case 6:
-                            return ConsoleColor.DarkCyan;
-                        case 7:
-                            return ConsoleColor.Magenta;
-                        case 8:
-                            return ConsoleColor.Gray;
-                        default:
-                            return null;
-                    }
+                    return value switch {
+                        -1 => (ConsoleColor?)ConsoleColor.Black,
+                        0 => (ConsoleColor?)ConsoleColor.White,
+                        1 => (ConsoleColor?)ConsoleColor.Blue,
+                        2 => (ConsoleColor?)ConsoleColor.Green,
+                        3 => (ConsoleColor?)ConsoleColor.Red,
+                        4 => (ConsoleColor?)ConsoleColor.DarkBlue,
+                        5 => (ConsoleColor?)ConsoleColor.DarkRed,
+                        6 => (ConsoleColor?)ConsoleColor.DarkCyan,
+                        7 => (ConsoleColor?)ConsoleColor.Magenta,
+                        8 => (ConsoleColor?)ConsoleColor.Gray,
+                        _ => null,
+                    };
                 } 
             }
 
-            private int value;
+            private readonly int value;
 
             // A value of -1 denotes a mine
             internal Cell(int value) {

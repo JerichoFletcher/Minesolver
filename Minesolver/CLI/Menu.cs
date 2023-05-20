@@ -37,6 +37,7 @@ namespace Minesolver.CLI {
                                     if(board == null) return false;
 
                                     while(PlayerGameLoop(board)) ;
+
                                     Console.Clear();
                                     ConsoleHelper.WriteLine("GAME", ConsoleColor.DarkGray);
                                     board.PrintBoardToConsole();
@@ -120,20 +121,40 @@ namespace Minesolver.CLI {
 
             ConsoleHelper.Write("Pos: ", ConsoleColor.White);
             string? pos = Console.ReadLine();
-            if(pos != null) {
-                string[] args = pos.Trim().Split(' ');
-                if(args.Length != 2) {
-                    ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
-                    return true;
-                } else if(int.TryParse(args[0], out int row) && int.TryParse(args[1], out int col)) {
-                    if(board.Click(row, col) == -1) return false;
+            try {
+                if(pos != null) {
+                    string[] args = pos.Trim().Split(' ');
+                    if(args.Length == 2) {
+                        if(int.TryParse(args[0], out int row) && int.TryParse(args[1], out int col)) {
+                            board.Click(row, col);
+                        } else {
+                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                            return true;
+                        }
+                    } else if(args.Length == 3) {
+                        if(int.TryParse(args[0], out int row) && int.TryParse(args[1], out int col)) {
+                            switch(args[2].ToLower()) {
+                                case "f":
+                                    board.SetFlag(row, col, !board.GetFlag(row, col));
+                                    return true;
+                                default:
+                                    ConsoleHelper.WriteLine($"Unknown command '{args[2]}'!", ConsoleColor.Red);
+                                    return true;
+                            }
+                        } else {
+                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                            return true;
+                        }
+                    } else {
+                        ConsoleHelper.WriteLine("Wrong input format!", ConsoleColor.Red);
+                        return true;
+                    }
                 } else {
-                    ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
-                    return true;
+                    ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                    return false;
                 }
-            } else {
-                ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
-                return false;
+            }catch(Exception e) {
+                ConsoleHelper.WriteLine($"Error: {e.Message}", ConsoleColor.Red);
             }
 
             return !board.Finished;
