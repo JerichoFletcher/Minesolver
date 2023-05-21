@@ -9,10 +9,15 @@ namespace Minesolver.Game {
         public int RemainingMineCount { get; private set; }
         public int RemainingCoveredCells { get; private set; }
         public BoardState State { get; private set; }
+
+        public IEnumerable<(int, int)> CoveredSquares => coveredSquares;
+        public IEnumerable<(int, int)> RevealedNumbers => revealedNumbers;
         public bool Finished => State == BoardState.Win || State == BoardState.Lose;
 
         private readonly Cell[,] cells;
         private readonly HashSet<(int, int)> flags = new HashSet<(int, int)>();
+        private readonly HashSet<(int, int)> coveredSquares = new HashSet<(int, int)>();
+        private readonly HashSet<(int, int)> revealedNumbers = new HashSet<(int, int)>();
         private bool firstClicked;
 
         public Board(int mineCount, int rowCount, int colCount) {
@@ -31,9 +36,18 @@ namespace Minesolver.Game {
 
         public void Reset() {
             flags.Clear();
+            revealedNumbers.Clear();
             firstClicked = false;
             State = BoardState.NotStarted;
             BuildCells();
+        }
+
+        public void Each(Action<int, int> action) {
+            for(int row = 1; row <= RowCount; row++) {
+                for(int col = 1; col <= ColCount; col++) {
+                    action(row, col);
+                }
+            }
         }
 
         public void EachNeighbor(int peekRow, int peekCol, Action<int, int> action) {
@@ -98,8 +112,7 @@ namespace Minesolver.Game {
 
         public void Click(int clickRow, int clickCol) {
             if(!WithinBounds(clickRow, clickCol)) throw new ArgumentOutOfRangeException($"Position {clickRow}:{clickCol} is out of bounds for mapsize {RowCount}x{ColCount}");
-            if(GetFlag(clickRow, clickCol)) throw new InvalidOperationException($"Cannot click {clickRow}:{clickCol} as it is flagged");
-            if(Finished) throw new InvalidOperationException("The board is already finished");
+            if(GetFlag(clickRow, clickCol)) return;
 
             (int row, int col) = (clickRow - 1, clickCol - 1);
             if(cells[row, col].IsUncovered) {
@@ -115,9 +128,9 @@ namespace Minesolver.Game {
                     });
                 }
             }
-            
+
             // Uncover a single square
-            State = BoardState.Started;
+            if(!Finished) State = BoardState.Started;
             if(!firstClicked) {
                 bool check = cells[row, col].Uncover() != 0;
                 while(check) {
@@ -129,23 +142,18 @@ namespace Minesolver.Game {
             }
 
             int value = cells[row, col].Uncover();
+            coveredSquares.Remove((clickRow, clickCol));
             RemainingCoveredCells--;
 
             if(value == 0) {
                 EachNeighbor(clickRow, clickCol, (r, c) => {
                     if(Peek(r, c) == null) Click(r, c);
                 });
-                //for(int dx = -1; dx <= 1; dx++) {
-                //    for(int dy = -1; dy <= 1; dy++) {
-                //        if(dx == 0 && dy == 0) continue;
-                //        int neighborRow = row + dx;
-                //        int neighborCol = col + dy;
-                //        if(!WithinBounds(neighborRow, neighborCol)) continue;
-
-                //        Click(neighborRow + 1, neighborCol + 1);
-                //    }
-                //}
-            } else if(value == -1) State = BoardState.Lose;
+            } else if(value == -1) {
+                State = BoardState.Lose;
+            } else {
+                revealedNumbers.Add((clickRow, clickCol));
+            }
 
             if(!Finished && RemainingCoveredCells == MineCount) State = BoardState.Win;
         }
@@ -184,27 +192,14 @@ namespace Minesolver.Game {
                     EachNeighbor(row + 1, col + 1, (r, c) => {
                         if(numbers[r - 1, c - 1] != -1) numbers[r - 1, c - 1]++;
                     });
-                    //for(int dx = -1; dx <= 1; dx++) {
-                    //    for(int dy = -1; dy <= 1; dy++) {
-                    //        if(dx == 0 && dy == 0) continue;
-                    //        int neighborRow = row + dx;
-                    //        int neighborCol = col + dy;
-                    //        if(!WithinBounds(neighborRow, neighborCol)) continue;
-
-                    //        if(numbers[neighborRow, neighborCol] != -1) {
-                    //            numbers[neighborRow, neighborCol]++;
-                    //        }
-                    //    }
-                    //}
                 }
             }
 
             RemainingCoveredCells = RowCount * ColCount;
-            for(int row = 0; row < RowCount; row++) {
-                for(int col = 0; col < ColCount; col++) {
-                    cells[row, col] = new Cell(numbers[row, col]);
-                }
-            }
+            Each((row, col) => {
+                cells[row - 1, col - 1] = new Cell(numbers[row - 1, col - 1]);
+                coveredSquares.Add((row, col));
+            });
         }
 
         public class Cell {

@@ -2,7 +2,7 @@
 using Minesolver.Game;
 
 namespace Minesolver.Solver {
-    internal class RandomSolver {
+    internal class RandomSolver : ISolver {
         public Board Board { get; private set; }
 
         private readonly Random rand = new Random();

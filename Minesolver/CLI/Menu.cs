@@ -14,6 +14,8 @@ namespace Minesolver.CLI {
             printOption(1, "Play by yourself");
             printOption(2, "Single random solver");
             printOption(3, "Mass random solver");
+            printOption(4, "Single probabilistic solver");
+            printOption(5, "Mass probabilistic solver");
             printOption(0, "Exit");
 
             bool valid = false;
@@ -25,7 +27,9 @@ namespace Minesolver.CLI {
                             switch(option) {
                                 default:
                                     Board? board;
-                                    RandomSolver randSolver;
+                                    ISolver solver;
+                                    
+                                    int attemptCount;
 
                                     ConsoleHelper.WriteLine($"Unknown option '{option}'! Try again.", ConsoleColor.Red);
                                     break;
@@ -63,8 +67,8 @@ namespace Minesolver.CLI {
                                     board = InputBoard();
                                     if(board == null) return false;
 
-                                    randSolver = new RandomSolver(board);
-                                    randSolver.Solve();
+                                    solver = new RandomSolver(board);
+                                    solver.Solve();
 
                                     break;
                                 case 3:
@@ -74,7 +78,6 @@ namespace Minesolver.CLI {
                                     board = InputBoard();
                                     if(board == null) return false;
 
-                                    int attemptCount;
                                     while(true) {
                                         ConsoleHelper.Write("Attempt count: ", ConsoleColor.DarkGray);
                                         string? strAttemptCount = Console.ReadLine();
@@ -91,8 +94,46 @@ namespace Minesolver.CLI {
                                         }
                                     }
 
-                                    randSolver = new RandomSolver(board);
-                                    randSolver.SolveImmediate(attemptCount);
+                                    solver = new RandomSolver(board);
+                                    solver.SolveImmediate(attemptCount);
+
+                                    break;
+                                case 4:
+                                    // Single probabilistic solve
+                                    valid = true;
+
+                                    board = InputBoard();
+                                    if(board == null) return false;
+
+                                    solver = new ProbabilisticSolver(board);
+                                    solver.Solve();
+
+                                    break;
+                                case 5:
+                                    // Mass probabilistic solve
+                                    valid = true;
+
+                                    board = InputBoard();
+                                    if(board == null) return false;
+
+                                    while(true) {
+                                        ConsoleHelper.Write("Attempt count: ", ConsoleColor.DarkGray);
+                                        string? strAttemptCount = Console.ReadLine();
+                                        if(strAttemptCount == null) {
+                                            ConsoleHelper.WriteLine("Read null input!", ConsoleColor.DarkRed);
+                                            return true;
+                                        }
+
+                                        if(int.TryParse(strAttemptCount, out attemptCount)) {
+                                            break;
+                                        } else {
+                                            ConsoleHelper.WriteLine("Invalid input!", ConsoleColor.Red);
+                                            continue;
+                                        }
+                                    }
+
+                                    solver = new ProbabilisticSolver(board);
+                                    solver.SolveImmediate(attemptCount);
 
                                     break;
                                 case 0:
