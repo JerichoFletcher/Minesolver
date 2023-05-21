@@ -59,10 +59,8 @@ namespace Minesolver.Solver {
                     .ToArray();
 
                 int select = rand.Next(minProbabilitySquares.Length);
+                Console.WriteLine($"Selecting {select} from {minProbabilitySquares.Length}");
                 (int row, int col) = minProbabilitySquares[select];
-                //Console.WriteLine($"Result probability table:\n{string.Join('\n', probabilityBoard.Select(pair => $"{pair.Key}: {pair.Value}"))}");
-                //Console.WriteLine($"Candidate squares:\n{string.Join('\n', minProbabilitySquares.Select(key => $"{key}: {probabilityBoard[key]}"))}");
-                //Console.WriteLine($"Trying to click ({row}, {col}) [{probabilityBoard.First().Value} of index {select} in length {minProbabilitySquares.Length}]");
                 Board.Click(row, col);
 
                 Console.Clear();
@@ -99,43 +97,41 @@ namespace Minesolver.Solver {
 
             ConsoleHelper.Write("Press ENTER to start...", ConsoleColor.Green);
             Console.ReadLine();
-            ConsoleHelper.WriteLine($"Starting {attemptCount} worker threads...", ConsoleColor.Cyan);
+            ConsoleHelper.WriteLine($"Queueing {attemptCount} worker threads...", ConsoleColor.Cyan);
 
             HashSet<Thread> threads = new HashSet<Thread>();
-            Random rand = new Random();
             for(int i = 1; i <= attemptCount; i++) {
                 ThreadPool.QueueUserWorkItem(attemptNumber => {
+                    Random rand = new Random();
                     int threadNumber = (int)(attemptNumber ?? rand.Next());
                     Board tBoard = new Board(Board.MineCount, Board.RowCount, Board.ColCount);
 
-                    try {
-                        while(!tBoard.Finished) {
-                            probabilityBoard = ComputeProbabilities(tBoard);
+                    while(!tBoard.Finished) {
+                        probabilityBoard = ComputeProbabilities(tBoard);
 
-                            // Flag definitely mined squares
-                            IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
-                                .Where(pair => pair.Value == 1f)
-                                .Select(pair => pair.Key);
-                            foreach((int minedRow, int minedCol) in definiteMinedSquares) {
-                                tBoard.SetFlag(minedRow, minedCol, true);
-                            }
+                        // Flag definitely mined squares
+                        IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
+                            .Where(pair => pair.Value == 1f)
+                            .Select(pair => pair.Key);
+                        foreach((int minedRow, int minedCol) in definiteMinedSquares) {
+                            tBoard.SetFlag(minedRow, minedCol, true);
+                        }
 
-                            (int row, int col)[] minProbabilitySquares = probabilityBoard
-                                .Where(pair => probabilityBoard.All(otherPair => pair.Value <= otherPair.Value))
-                                .Select(pair => pair.Key)
-                                .ToArray();
+                        (int row, int col)[] minProbabilitySquares = probabilityBoard
+                            .Where(pair => probabilityBoard.All(otherPair => pair.Value <= otherPair.Value))
+                            .Select(pair => pair.Key)
+                            .ToArray();
 
+                        try {
                             int select = rand.Next(minProbabilitySquares.Length);
                             (int row, int col) = minProbabilitySquares[select];
-                            //Console.WriteLine($"Result probability table:\n{string.Join('\n', probabilityBoard.Select(pair => $"{pair.Key}: {pair.Value}"))}");
-                            //Console.WriteLine($"Candidate squares:\n{string.Join('\n', minProbabilitySquares.Select(key => $"{key}: {probabilityBoard[key]}"))}");
-                            //Console.WriteLine($"Trying to click ({row}, {col}) [{probabilityBoard.First().Value} of index {select} in length {minProbabilitySquares.Length}]");
                             tBoard.Click(row, col);
-                        }
-                    } catch(Exception e) {
-                        ReportResult(threadNumber, null, e.Message);
-                    }
 
+                        } catch(Exception e) {
+                            ReportResult(threadNumber, null, $"Array length: {minProbabilitySquares.Length}\nFull probability board:\n{string.Join('\n', probabilityBoard)}\n{e}");
+                            return;
+                        }
+                    }
                     ReportResult(threadNumber, tBoard.State == BoardState.Win);
                 }, i);
             }
@@ -180,46 +176,66 @@ namespace Minesolver.Solver {
 
             // Search for all covered squares
             foreach((int r, int c) in board.CoveredSquares) {
-                if(board.Peek(r, c) == null) {
-                    coveredSquaresMined.Add((r, c), 0);
-                }
+                coveredSquaresMined.Add((r, c), 0);
             }
 
+            //Console.WriteLine("Board state:");
+            //Console.WriteLine($"  {board.CoveredSquares.Count()} covered squares: {board.InnerCoveredSquares.Count()} inner + {board.OuterCoveredSquares.Count()} outer");
+            //Console.WriteLine($"  {board.RevealedNumbers.Count()} revealed number squares");
             // Iterate through all combinations of mines
             int combCount = 0;
-            //Console.WriteLine($"Checking {Board.CoveredSquares.Combinations(Board.MineCount).Count()} of possible {Board.CoveredSquares.Combinations().Count()} configurations:");
-            foreach((int mineRow, int mineCol)[] mineComb in board.CoveredSquares.Combinations(board.MineCount)) {
-                bool valid = true;
+            int minOuterMineCount = Math.Max(0, board.RemainingMineCount - (board.CoveredSquares.Count() - board.OuterCoveredSquares.Count()));
+            int maxOuterMineCount = Math.Min(board.OuterCoveredSquares.Count(), board.RemainingMineCount);
+            for(int outerMineCount = minOuterMineCount; outerMineCount <= maxOuterMineCount; outerMineCount++) {
+                int innerMineCount = board.RemainingMineCount - outerMineCount;
+                int innerMineCombCount = board.InnerCoveredSquares.Count() != 0 ? Combinatorics.Combination(board.InnerCoveredSquares.Count(), innerMineCount) : 1;
+                int innerMineCombOccurence = board.InnerCoveredSquares.Count() != 0 ? Combinatorics.Combination(board.InnerCoveredSquares.Count() - 1, innerMineCount - 1) : 0;
+                //Console.WriteLine($"Checking for outer mine count = {outerMineCount}, {innerMineCount} inner mines combo {innerMineCombOccurence} occurence each in {innerMineCombCount} combinations");
 
-                // Verify count of mines
-                foreach((int numRow, int numCol) in board.RevealedNumbers) {
-                    int mineCount = 0;
-                    board.EachNeighbor(numRow, numCol, (checkRow, checkCol) => {
-                        if(mineComb.Contains((checkRow, checkCol))) mineCount++;
-                    });
-                    if(mineCount != board.Peek(numRow, numCol)) {
-                        valid = false;
-                        break;
+                IEnumerable<(int mineRow, int mineCol)[]> outerMineConfigurations = board.OuterCoveredSquares.Combinations(outerMineCount);
+                int validConfigs = 0;
+                foreach(var outerMineComb in outerMineConfigurations.Select(array => new List<(int, int)>(array))) {
+                    outerMineComb.AddRange(board.FlaggedSquares);
+                    bool valid = true;
+
+                    //Console.WriteLine($"Considering {string.Join(',', outerMineComb)}...");
+                    // Verify count of mines
+                    foreach((int numRow, int numCol) in board.RevealedNumbers) {
+                        int mineCount = 0;
+                        board.EachNeighbor(numRow, numCol, (checkRow, checkCol) => {
+                            if(outerMineComb.Contains((checkRow, checkCol))) mineCount++;
+                        });
+                        if(mineCount != board.Peek(numRow, numCol)) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    if(!valid) continue;
+                    validConfigs++;
+
+                    //Console.WriteLine($"Adding config {string.Join(',', outerMineComb)}");
+                    // Add combination to the map
+                    combCount += innerMineCombCount;
+                    foreach((int, int) key in outerMineComb) {
+                        coveredSquaresMined[key] += innerMineCombCount;
                     }
                 }
-                if(!valid) continue;
-
-                // Add combination to the map
-                //Console.WriteLine($"Adding configuration {string.Join(',', mineComb)}");
-                combCount++;
-                foreach((int, int) key in mineComb) {
-                    //Console.Write($"    Adding count of {key} from {coveredSquaresMined[key]} to ");
-                    coveredSquaresMined[key]++;
-                    //Console.WriteLine(coveredSquaresMined[key]);
+                foreach((int, int) key in board.InnerCoveredSquares) {
+                    coveredSquaresMined[key] += validConfigs * innerMineCombOccurence;
                 }
-                //Console.WriteLine($"");
             }
 
-            // Calculate probability value
-            foreach(KeyValuePair<(int, int), int> pair in coveredSquaresMined) {
-                probabilityBoard.Add(pair.Key, (float)pair.Value / combCount);
+            // Calculate covered squares probability value
+            foreach(KeyValuePair<(int r, int c), int> pair in coveredSquaresMined) {
+                if(board.GetFlag(pair.Key.r, pair.Key.c)) {
+                    probabilityBoard.Add(pair.Key, 1f);
+                } else {
+                    probabilityBoard.Add(pair.Key, combCount == 0 ? 0 : ((float)pair.Value / combCount));
+                }
             }
 
+            //Console.WriteLine($"Calculated:\n{string.Join('\n', probabilityBoard)}");
+            //Console.ReadLine();
             return probabilityBoard;
         }
     }

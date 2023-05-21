@@ -1,26 +1,5 @@
 ﻿namespace Minesolver.Utility {
-    internal static class Combinatorics {
-        //public static IEnumerable<T[]> Combinations<T>(this IEnumerable<T> source) {
-        //    if(source == null) throw new ArgumentNullException(nameof(source));
-
-        //    T[] sourceBuffer = source.ToArray();
-        //    return Enumerable
-        //        .Range(0, 1 << sourceBuffer.Length)
-        //        .Select(mask =>
-        //            sourceBuffer.Where((_, i) => (mask & (1 << i)) != 0)
-        //            .ToArray()
-        //        );
-        //}
-
-        //public static IEnumerable<T[]> Combinations<T>(this IEnumerable<T> source, int length) {
-        //    if(source == null) throw new ArgumentNullException(nameof(source));
-        //    if(length < 0 || length > source.Count()) throw new ArgumentOutOfRangeException(nameof(source));
-
-        //    return source.Combinations()
-        //        .Where(comb => comb.Length == length);
-        //}
-
-        
+    internal static class Combinatorics {        
         private static IEnumerable<int[]> Combinations(int m, int n) {
             int[] result = new int[m];
             Stack<int> stack = new Stack<int>(m);
@@ -45,15 +24,33 @@
         public static IEnumerable<T[]> Combinations<T>(this IEnumerable<T> source, int m) {
             T[] array = source.ToArray();
             if(array.Length < m) throw new ArgumentException("Array length can't be less than number of selected elements");
-            if(m < 1) throw new ArgumentException("Number of selected elements can't be less than 1");
+            if(m < 0) throw new ArgumentOutOfRangeException(nameof(m));
 
             T[] result = new T[m];
-            foreach(int[] j in Combinations(m, array.Length)) {
-                for(int i = 0; i < m; i++) {
-                    result[i] = array[j[i]];
-                }
+            if(m == 0) {
                 yield return result;
+            } else {
+                foreach(int[] j in Combinations(m, array.Length)) {
+                    for(int i = 0; i < m; i++) {
+                        result[i] = array[j[i]];
+                    }
+                    yield return result;
+                }
             }
+        }
+
+        public static int Combination(int n, int k) {
+            if(n < 0) throw new ArgumentOutOfRangeException(nameof(n));
+            if(k < 0 || k > n) return 0;
+
+            int c = 1;
+            for(int num = n; num > Math.Max(k, n - k); num--) {
+                c *= num;
+            }
+            for(int den = Math.Min(k, n - k); den > 1; den--) {
+                c /= den;
+            }
+            return c;
         }
     }
 }

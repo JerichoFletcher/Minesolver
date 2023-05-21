@@ -110,7 +110,7 @@ namespace Minesolver.Game {
                             ConsoleHelper.Write(((row + 1) % 10).ToString(), ConsoleColor.DarkGray);
                         } else {
                             Cell cell = cells[row, col];
-                            if(flags.Contains((row, col))) {
+                            if(flags.Contains((row + 1, col + 1))) {
                                 ConsoleHelper.Write("F", ConsoleColor.DarkRed, ConsoleColor.DarkGray);
                             } else if(cell.IsUncovered) {
                                 int cellValue = cell.Value ?? int.MinValue;
@@ -178,7 +178,10 @@ namespace Minesolver.Game {
             } else {
                 revealedNumbers.Add((clickRow, clickCol));
                 EachNeighbor(clickRow, clickCol, (r, c) => {
-                    if(Peek(r, c) == null) outerCoveredSquares.Add((r, c));
+                    if(Peek(r, c) == null) {
+                        innerCoveredSquares.Remove((r, c));
+                        outerCoveredSquares.Add((r, c));
+                    }
                 });
             }
 
@@ -194,14 +197,14 @@ namespace Minesolver.Game {
         public void SetFlag(int peekRow, int peekCol, bool flag) {
             if(!WithinBounds(peekRow, peekCol)) throw new ArgumentOutOfRangeException($"Position {peekRow}:{peekCol} is out of bounds for mapsize {RowCount}x{ColCount}");
             (int row, int col) = (peekRow - 1, peekCol - 1);
-            bool _ = flag ? flags.Add((row, col)) : flags.Remove((row, col));
+            bool _ = flag ? flags.Add((peekRow, peekCol)) : flags.Remove((peekRow, peekCol));
             RemainingMineCount = Math.Max(MineCount - flags.Count, 0);
         }
 
         public bool GetFlag(int peekRow, int peekCol) {
             if(!WithinBounds(peekRow, peekCol)) throw new ArgumentOutOfRangeException($"Position {peekRow}:{peekCol} is out of bounds for mapsize {RowCount}x{ColCount}");
             (int row, int col) = (peekRow - 1, peekCol - 1);
-            return flags.Contains((row, col));
+            return flags.Contains((peekRow, peekCol));
         }
 
         private void BuildCells() {
