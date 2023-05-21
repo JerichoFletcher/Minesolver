@@ -9,7 +9,6 @@ namespace Minesolver.Solver {
         public Board Board { get; }
 
         private readonly Random rand = new Random();
-        private Dictionary<(int, int), float> probabilityBoard = new Dictionary<(int, int), float>();
 
         private int attemptFinished, winCount;
 
@@ -43,7 +42,7 @@ namespace Minesolver.Solver {
             Console.ReadLine();
             
             while(!Board.Finished) {
-                probabilityBoard = ComputeProbabilities(Board);
+                Dictionary<(int, int), float> probabilityBoard = ComputeProbabilities(Board);
 
                 // Flag definitely mined squares
                 IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
@@ -107,7 +106,7 @@ namespace Minesolver.Solver {
                     Board tBoard = new Board(Board.MineCount, Board.RowCount, Board.ColCount);
 
                     while(!tBoard.Finished) {
-                        probabilityBoard = ComputeProbabilities(tBoard);
+                        Dictionary<(int, int), float> probabilityBoard = ComputeProbabilities(tBoard);
 
                         // Flag definitely mined squares
                         IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
