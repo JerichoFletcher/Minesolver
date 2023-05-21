@@ -10,14 +10,19 @@ namespace Minesolver.Game {
         public int RemainingCoveredCells { get; private set; }
         public BoardState State { get; private set; }
 
+        public IEnumerable<(int, int)> FlaggedSquares => flags;
         public IEnumerable<(int, int)> CoveredSquares => coveredSquares;
         public IEnumerable<(int, int)> RevealedNumbers => revealedNumbers;
+        public IEnumerable<(int, int)> InnerCoveredSquares => innerCoveredSquares;
+        public IEnumerable<(int, int)> OuterCoveredSquares => outerCoveredSquares;
         public bool Finished => State == BoardState.Win || State == BoardState.Lose;
 
         private readonly Cell[,] cells;
         private readonly HashSet<(int, int)> flags = new HashSet<(int, int)>();
         private readonly HashSet<(int, int)> coveredSquares = new HashSet<(int, int)>();
         private readonly HashSet<(int, int)> revealedNumbers = new HashSet<(int, int)>();
+        private readonly HashSet<(int, int)> innerCoveredSquares = new HashSet<(int, int)>();
+        private readonly HashSet<(int, int)> outerCoveredSquares = new HashSet<(int, int)>();
         private bool firstClicked;
 
         public Board(int mineCount, int rowCount, int colCount) {
@@ -36,10 +41,26 @@ namespace Minesolver.Game {
 
         public void Reset() {
             flags.Clear();
+            coveredSquares.Clear();
             revealedNumbers.Clear();
+            innerCoveredSquares.Clear();
+            outerCoveredSquares.Clear();
             firstClicked = false;
             State = BoardState.NotStarted;
             BuildCells();
+        }
+
+        public IEnumerable<(int, int)> NeighborsOf(int peekRow, int peekCol) {
+            for(int dRow = -1; dRow <= 1; dRow++) {
+                for(int dCol = -1; dCol <= 1; dCol++) {
+                    if(dRow == 0 && dCol == 0) continue;
+
+                    (int row, int col) = (peekRow + dRow, peekCol + dCol);
+                    if(!WithinBounds(row, col)) continue;
+
+                    yield return (row, col);
+                }
+            }
         }
 
         public void Each(Action<int, int> action) {
@@ -134,7 +155,8 @@ namespace Minesolver.Game {
             if(!firstClicked) {
                 bool check = cells[row, col].Uncover() != 0;
                 while(check) {
-                    BuildCells();
+                    //BuildCells();
+                    Reset();
                     int checkVal = cells[row, col].Uncover();
                     check = checkVal == -1;
                 }
@@ -143,6 +165,8 @@ namespace Minesolver.Game {
 
             int value = cells[row, col].Uncover();
             coveredSquares.Remove((clickRow, clickCol));
+            innerCoveredSquares.Remove((clickRow, clickCol));
+            outerCoveredSquares.Remove((clickRow, clickCol));
             RemainingCoveredCells--;
 
             if(value == 0) {
@@ -153,6 +177,9 @@ namespace Minesolver.Game {
                 State = BoardState.Lose;
             } else {
                 revealedNumbers.Add((clickRow, clickCol));
+                EachNeighbor(clickRow, clickCol, (r, c) => {
+                    if(Peek(r, c) == null) outerCoveredSquares.Add((r, c));
+                });
             }
 
             if(!Finished && RemainingCoveredCells == MineCount) State = BoardState.Win;
@@ -199,6 +226,7 @@ namespace Minesolver.Game {
             Each((row, col) => {
                 cells[row - 1, col - 1] = new Cell(numbers[row - 1, col - 1]);
                 coveredSquares.Add((row, col));
+                innerCoveredSquares.Add((row, col));
             });
         }
 

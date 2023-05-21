@@ -35,7 +35,7 @@ namespace Minesolver.Solver {
             }
 
             Console.Clear();
-            ConsoleHelper.WriteLine("SINGLE GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
+            ConsoleHelper.WriteLine("SINGLE PROBABILISTIC SOLVER", ConsoleColor.DarkGray);
             Board.PrintBoardToConsole();
 
             ConsoleHelper.WriteLine($"Will click once every {interval} seconds", ConsoleColor.Cyan);
@@ -44,6 +44,15 @@ namespace Minesolver.Solver {
             
             while(!Board.Finished) {
                 probabilityBoard = ComputeProbabilities(Board);
+
+                // Flag definitely mined squares
+                IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
+                    .Where(pair => pair.Value == 1f)
+                    .Select(pair => pair.Key);
+                foreach((int minedRow, int minedCol) in definiteMinedSquares) {
+                    Board.SetFlag(minedRow, minedCol, true);
+                }
+
                 (int row, int col)[] minProbabilitySquares = probabilityBoard
                     .Where(pair => probabilityBoard.All(otherPair => pair.Value <= otherPair.Value))
                     .Select(pair => pair.Key)
@@ -57,7 +66,7 @@ namespace Minesolver.Solver {
                 Board.Click(row, col);
 
                 Console.Clear();
-                ConsoleHelper.WriteLine("SINGLE GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
+                ConsoleHelper.WriteLine("SINGLE PROBABILISTIC SOLVER", ConsoleColor.DarkGray);
                 Board.PrintBoardToConsole();
 
                 ConsoleHelper.WriteLine($"Clicked position ({row}, {col})", ConsoleColor.Cyan);
@@ -81,7 +90,7 @@ namespace Minesolver.Solver {
 
         public void SolveImmediate(int attemptCount) {
             Console.Clear();
-            ConsoleHelper.WriteLine("MASS GREEDY BY PROBABILITY SOLVER", ConsoleColor.DarkGray);
+            ConsoleHelper.WriteLine("MASS PROBABILISTIC SOLVER", ConsoleColor.DarkGray);
             ConsoleHelper.Write("Solving board ", ConsoleColor.DarkGray);
             ConsoleHelper.Write($"{Board.RowCount}x{Board.ColCount}:{Board.MineCount}", ConsoleColor.Cyan);
             ConsoleHelper.Write(" in ", ConsoleColor.DarkGray);
@@ -102,6 +111,15 @@ namespace Minesolver.Solver {
                     try {
                         while(!tBoard.Finished) {
                             probabilityBoard = ComputeProbabilities(tBoard);
+
+                            // Flag definitely mined squares
+                            IEnumerable<(int, int)> definiteMinedSquares = probabilityBoard
+                                .Where(pair => pair.Value == 1f)
+                                .Select(pair => pair.Key);
+                            foreach((int minedRow, int minedCol) in definiteMinedSquares) {
+                                tBoard.SetFlag(minedRow, minedCol, true);
+                            }
+
                             (int row, int col)[] minProbabilitySquares = probabilityBoard
                                 .Where(pair => probabilityBoard.All(otherPair => pair.Value <= otherPair.Value))
                                 .Select(pair => pair.Key)
