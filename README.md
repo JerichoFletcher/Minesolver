@@ -18,8 +18,10 @@ A simple player as well as auto-solver for Minesweeper, a classic puzzle video g
 1. Enter the board size (format: `<row> <col>`) and the number of mines. A game board will be displayed.
 2. Enter a pair of numbers (format: `<row> <col>`) to click a square on the board.
 3. Enter a pair of numbers followed by 'F' (format: `<row> <col> F`) to flag a covered square.
-4. Clicking on an already revealed square performs a chord, which automatically reveals adjacent covered squares if the number of adjacent flags match the number displayed on the square. For example:<br />![image](https://github.com/JerichoFletcher/Minesolver/assets/62737325/7409ed86-502c-4333-80e4-cd11540a60e7)<br />Clicking on the square **(2, 2)**, which is numbered **2**, will reveal the squares **(2, 3)**, **(3, 1)**, **(3, 2)**, and **(3, 3)**. Note that if one of the flagged square is a safe square, this may result in a mined square being revealed by chording.
-5. The game ends when all the remaining covered squares are mined, or a mined square is revealed.
+4. Clicking on an already revealed square performs a chord, which automatically reveals adjacent covered squares if the number of adjacent flags match the number displayed on the square. For example:<br />
+![image](https://github.com/JerichoFletcher/Minesolver/assets/62737325/badab9b2-afd8-46e5-a406-a8ac8933e487)<br />
+Clicking on the square **(2, 2)**, which is numbered **2**, will reveal the squares **(2, 3)**, **(3, 1)**, **(3, 2)**, and **(3, 3)**. Note that if one of the flagged square is a safe square, this may result in a mined square being revealed by chording.
+6. The game ends when all the remaining covered squares are mined, or a mined square is revealed.
 
 ### Auto-solver
 1. Enter the board size (format: `<row> <col>`) and the number of mines.
